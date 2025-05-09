@@ -1,0 +1,93 @@
+name: RVCK CI
+
+on:
+  workflow_call:
+    inputs:
+      WORKFLOW_REF:
+        required: false
+        type: string
+        default: main
+jobs:
+  kernel-check:
+    runs-on: 'action-runner-9950x-196.2'
+    container:
+      image: 'debian:latest'
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: init-env
+        run: |
+          sed -i 's@deb.debian.org@mirrors.tuna.tsinghua.edu.cn@g' /etc/apt/sources.list.d/debian.sources
+
+          (type -p wget >/dev/null || (apt update &&apt-get install wget -y)) \
+            && mkdir -p -m 755 /etc/apt/keyrings \
+                  && out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+                  && cat $out | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+            && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+            && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            
+          apt update
+
+          apt install gh gcc-riscv64-linux-gnu gcc-riscv64-unknown-elf \
+            make gcc g++ flex device-tree-compiler pahole dwarves libfuse-dev kmod  bzip2 xz-utils curl cpio bc libssl-dev libncurses-dev bison flex libelf-dev \
+            qemu-system-riscv64 \
+            yq git vim bash-completion tmux sudo python3\
+            -y
+      - uses: actions/checkout@v4
+        with:
+          repository: 'OERV-RVCI/RAVA-action'
+          ref: ${{ inputs.WORKFLOW_REF }}
+      - id: parse-request
+        uses: ./parse-request
+
+      - name: send start test
+        run: bash gh_actions/run.sh
+        env:
+          REPO: ${{ steps.parse-request.outputs.REPO }}
+          ISSUE_ID: ${{ steps.parse-request.outputs.ISSUE_ID }}
+          COMMENT_CONTENT: "start test"
+          ADD_LABEL: "kernel_waiting,lava_waiting,kunit-test_waiting"
+          REMOVE_LABEL: 'kernel_waiting,kernel_building,kernel_build_failed,kernel_build_succeed,lava_waiting,lava_checking,lava_check_done,lava_check_fail,kunit-test_waiting,kunit-test_checking,kunit-test_done'
+          
+      - name: checkout kernel source
+        run: mkdir -p kernel-src && (cd kernel-src && bash ../src/git-fetch-in-dir.sh "${{ steps.parse-request.outputs.FETCH_REF }}")
+        env:
+          REPO: ${{ steps.parse-request.outputs.REPO }}
+          GIT_FETCH_DEPTH: 1
+      
+      - name: run kunit test
+        shell: bash
+        run: |
+          REMOVE_LABEL="kunit-test_waiting,kunit-test_checking,kunit-test_done" ADD_LABEL=kunit-test_checking bash gh_actions/run.sh
+          (cd kernel-src && bash ../kernel-check/kunit-test.sh) || true
+          REMOVE_LABEL="kunit-test_waiting,kunit-test_checking,kunit-test_done" ADD_LABEL=kunit-test_done bash gh_actions/run.sh
+      
+      - name: run kernel build
+        shell: bash
+        run: |
+          REMOVE_LABEL="kernel_waiting,kernel_building,kernel_build_failed,kernel_build_succeed" ADD_LABEL=kernel_building bash gh_actions/run.sh
+          if (cd kernel-src && bash ../kernel-check/kernel-build.sh); then
+            COMMENT_CONTENT='Kernel build success!' REMOVE_LABEL="kernel_waiting,kernel_building,kernel_build_failed,kernel_build_succeed" ADD_LABEL=kernel_build_succeed bash gh_actions/run.sh
+          else
+            COMMENT_CONTENT="Kernel build failed!, log: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" REMOVE_LABEL="kernel_waiting,kernel_building,kernel_build_failed,kernel_build_succeed" ADD_LABEL=kernel_build_failed bash gh_actions/run.sh
+            exit 1
+          fi
+      
+            
+  # check-patch:
+  #   runs-on:
+  #     group: '9950x'
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         repository: 'OERV-RVCI/RAVA-action'
+  #         ref: ${{ env.WORKFLOW_REF }}
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         path: 'kernel-src'
+  #     - uses: ./check-patch
+  #       env:
+  #         FETCH_REF: ${{ needs.parse-request.outputs.FETCH_REF }}
+  #         ISSUE_ID: ${{ needs.parse-request.outputs.ISSUE_ID }}
+  #         SRC_REF: ${{ needs.parse-request.outputs.SRC_REF }}
+        

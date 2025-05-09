@@ -1,0 +1,14 @@
+name: run in docker
+inputs:
+  script_path:
+    description: 'The script to run'
+    required: true
+
+runs:
+  using: docker
+  image: 'Dockerfile'
+  
+  args: 
+    - bash
+    - ${{ inputs.script_path }}
+  
