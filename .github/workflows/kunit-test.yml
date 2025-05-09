@@ -1,0 +1,59 @@
+name: kunit-test
+
+on:
+  workflow_call:
+    inputs:
+      kernel_src_repo:
+        type: string
+        required: true
+        description: '内核源码仓库'
+      fetch_ref:
+        type: string
+        required: true
+        description: '内核分支或sha值'
+      issue_id:
+        type: string
+        required: false
+
+jobs:
+  kunit-test:
+    runs-on: 'ubuntu-latest'
+
+    env:
+      REMOVE_LABEL: "kunit-test_waiting,kunit-test_checking,kunit-test_done"
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ISSUE_ID: ${{ inputs.issue_id }}
+      REPO: ${{ inputs.kernel_src_repo }}
+    steps:
+      - name: install pkg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-riscv64-linux-gnu gcc-riscv64-unknown-elf make gcc g++ flex device-tree-compiler pahole dwarves libfuse-dev kmod  bzip2 xz-utils curl cpio bc libssl-dev libncurses-dev bison flex libelf-dev qemu-system-riscv64
+
+      - name: checkout kernel-src
+        run: git clone --depth=1 --progress -b "${{ inputs.fetch_ref }}" "${{ inputs.kernel_src_repo }}" kernel-src
+      
+      - name: before
+        if: ${{ inputs.issue_id }}
+        continue-on-error: true
+        run: |
+          gh issue edit "$ISSUE_ID" --remove-label "$REMOVE_LABEL" -R "$REPO"
+          gh issue edit "$ISSUE_ID" --add-label "kunit-test_checking" -R "$REPO"
+          gh issue comment "$ISSUE_ID" -b "start kunit test" -R "$REPO"
+
+      - name: run kunit test
+        continue-on-error: true
+        run: |
+          cd kernel-src
+          ARCH=riscv CROSS_COMPILE=riscv64-linux-gnu- ./tools/testing/kunit/kunit.py run --arch=riscv
+
+      
+      - name: after
+        if: ${{ inputs.issue_id }}
+        continue-on-error: true
+        run: |
+          gh issue edit "$ISSUE_ID" --remove-label "$REMOVE_LABEL" -R "$REPO"
+          gh issue edit "$ISSUE_ID" --add-label "kunit-test_done" -R "$REPO"
+          gh issue comment "$ISSUE_ID" -b "kunit test done. log: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" -R "$REPO"
+
+          

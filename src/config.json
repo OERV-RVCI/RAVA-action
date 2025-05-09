@@ -1,0 +1,26 @@
+{
+    "label_group":{
+        "kernel":[
+            "kernel_waiting",
+            "kernel_building",
+            "kernel_build_failed",
+            "kernel_build_succeed"
+        ],
+        "lava": [
+            "lava_waiting",
+            "lava_checking",
+            "lava_check_done",
+            "lava_check_fail"
+        ],
+        "kunit": [
+            "kunit-test_waiting",
+            "kunit-test_checking",
+            "kunit-test_done"
+        ],
+        "check-patch": [
+            "check-patch_waiting",
+            "check-patch_checking",
+            "check-patch_done"
+        ]
+    }
+}

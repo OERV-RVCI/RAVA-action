@@ -1,0 +1,77 @@
+name: lava-trigger
+
+on:
+  workflow_call:
+    inputs:
+      WORKFLOW_REF:
+        required: false
+        type: string
+        default: ${{ vars.WORKFLOW_REF || 'main' }}
+
+      REPO:
+        required: false
+        type: string
+      ISSUE_ID:
+        required: false
+        type: string
+      kernel_download_url:
+        description: '内核下载链接'
+        type: string
+        required: false
+      rootfs_download_url:
+        description: 'rootfs下载链接'
+        required: false
+        type: string
+        default: "https://repo.tarsier-infra.isrc.ac.cn/openEuler-RISC-V/RVCK/openEuler24.03-LTS-SP1/openeuler-rootfs.img"
+      testcase_repo:
+        description: 'lava 仓库地址'
+        required: false
+        type: string
+        default: https://github.com/RVCK-Project/lavaci.git
+      lava_template:
+        description: 'lava测试模板'
+        required: false
+        type: string
+        default: "lava-job-template/qemu/qemu-ltp.yaml"
+
+      testcase_url:
+        description: '需要执行的用例yaml 文件路径'
+        required: false
+        type: string
+        default: "lava-testcases/common-test/ltp/ltp.yaml"
+
+      testcase_params:
+        description: '测试用例参数,[key=value ...]'
+        type: string
+        required: false
+    
+    secrets:
+      lava_token:
+        required: true
+
+jobs:
+  lava-trigger:
+    runs-on: 'ubuntu-latest'
+    container:
+      image: 'hub.oepkgs.net/oerv-ci/rava-action-runner:latest'
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ inputs.REPO }}
+      ISSUE_ID: ${{ inputs.ISSUE_ID }}
+      kernel_download_url: ${{ inputs.kernel_download_url }}
+      rootfs_download_url: ${{ inputs.rootfs_download_url }}
+      testcase_repo: ${{ inputs.testcase_repo }}
+      lava_template: ${{ inputs.lava_template }}
+      testcase_url: ${{ inputs.testcase_url }}
+      testcase_params: ${{ inputs.testcase_params }}
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: 'OERV-RVCI/RAVA-action'
+          ref: ${{ inputs.WORKFLOW_REF }}
+
+      - uses: ./kernel-check/lava-trigger
+        with:
+          lava_token: ${{ secrets.lava_token }}
+      

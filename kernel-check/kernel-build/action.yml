@@ -1,0 +1,52 @@
+inputs:
+  kernel-src-dir:
+    description: 'kernel source code path'
+    required: true
+  sshkey_content:
+    description: 'kernel download server ssh key'
+    required: true
+
+outputs:
+  kernel_download_url:
+    description: 'kernel download url'
+    value: ${{ steps.kernel-build.outputs.kernel_download_url }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: before
+      shell: bash
+      env:
+        REMOVE_LABEL: "kernel_waiting,kernel_building,kernel_build_failed,kernel_build_succeed"
+        ADD_LABEL: kernel_building
+        COMMENT_CONTENT: start kernel build
+      run: bash gh_actions/run.sh
+
+    - name: run kernel build
+      id: kernel-build
+      shell: bash
+      run: |
+        echo "${{ inputs.sshkey_content }}" > "${{ inputs.kernel-src-dir }}/sshkey"
+        chmod 600 "${{ inputs.kernel-src-dir }}/sshkey"
+        script="$(pwd)/kernel-check/kernel-build/kernel-build.sh"
+        (cd "${{ inputs.kernel-src-dir }}" && bash "$script")
+        echo "kernel_download_url=$(cat "${{ inputs.kernel-src-dir }}/kernel_download_url")" >> $GITHUB_OUTPUT
+        echo "kernel_download_url=$(cat "${{ inputs.kernel-src-dir }}/kernel_download_url")" >> $GITHUB_ENV
+    
+    - name: after
+      if: ${{ success() }}
+      shell: bash
+      env:
+        REMOVE_LABEL: "kernel_waiting,kernel_building,kernel_build_failed,kernel_build_succeed"
+        ADD_LABEL: 'kernel_build_succeed'
+        COMMENT_CONTENT: 'Kernel build success!'
+      run: bash gh_actions/run.sh
+
+    - name: after-fail
+      if: ${{ failure() }}
+      shell: bash
+      env:
+        REMOVE_LABEL: "kernel_waiting,kernel_building,kernel_build_failed,kernel_build_succeed"
+        ADD_LABEL: kernel_build_failed
+        COMMENT_CONTENT: "Kernel build failed!, log: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+      run: bash gh_actions/run.sh
