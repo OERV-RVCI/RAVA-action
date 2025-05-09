@@ -1,0 +1,46 @@
+inputs:
+  lava_token:
+    description: "lava token"
+    required: true
+
+runs:
+  using: "composite"
+  steps:      
+    - name: checkout lavaci
+      shell: bash
+      run: |
+        rm -rf lavaci || true
+        mkdir -p lavaci
+        (cd lavaci && GIT_FETCH_DEPTH=1 REPO="$testcase_repo" bash ../src/git-fetch-in-dir.sh main)
+    
+    - name: before
+      shell: bash
+      env:
+        REMOVE_LABEL: "lava_waiting,lava_checking,lava_check_done,lava_check_fail"
+        ADD_LABEL: lava_checking
+        COMMENT_CONTENT: start lava check
+      run: bash gh_actions/run.sh
+    
+    - name: run lava check
+      shell: bash
+      env:
+        lava_admin_token: ${{ inputs.lava_token }}
+      run: |
+        script="$(pwd)/kernel-check/lava-trigger/lava-trigger.sh"
+        (cd lavaci && bash "$script")
+    
+    - name: after
+      if: ${{ success() }}
+      env:
+        REMOVE_LABEL: "lava_waiting,lava_checking,lava_check_done,lava_check_fail"
+        ADD_LABEL: lava_check_done
+      shell: bash
+      run: COMMENT_CONTENT=$(cat lavaci/COMMENT_CONTENT) bash gh_actions/run.sh
+    
+    - name: after-fail
+      if: ${{ failure() }}
+      env:
+        REMOVE_LABEL: "lava_waiting,lava_checking,lava_check_done,lava_check_fail"
+        ADD_LABEL: lava_check_fail
+      shell: bash
+      run: COMMENT_CONTENT=$(cat lavaci/COMMENT_CONTENT) bash gh_actions/run.sh

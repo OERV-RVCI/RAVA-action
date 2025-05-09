@@ -1,0 +1,30 @@
+inputs:
+  kernel-src-dir:
+    description: 'kernel source code path'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: before
+      shell: bash
+      env:
+        REMOVE_LABEL: "kunit-test_waiting,kunit-test_checking,kunit-test_done"
+        ADD_LABEL: kunit-test_checking
+        COMMENT_CONTENT: start kunit test
+      run: bash gh_actions/run.sh
+
+    - name: run kunit test
+      id: kernel-build
+      shell: bash
+      run: |
+        script="$(pwd)/kernel-check/kunit-test/kunit-test.sh"
+        (cd "${{ inputs.kernel-src-dir }}" && bash "$script")
+    
+    - name: after
+      shell: bash
+      env:
+        REMOVE_LABEL: "kunit-test_waiting,kunit-test_checking,kunit-test_done"
+        ADD_LABEL: kunit-test_done
+        COMMENT_CONTENT: "kunit test done. log: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" 
+      run: bash gh_actions/run.sh

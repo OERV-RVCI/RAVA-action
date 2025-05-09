@@ -1,0 +1,66 @@
+name: RVCK CI
+
+on:
+  workflow_call:
+    inputs:
+      WORKFLOW_REF:
+        required: false
+        type: string
+        default: main
+
+jobs:
+  kernel-check:
+    runs-on: 'action-runner-9950x-196.2'
+    container:
+      image: 'hub.oepkgs.net/oerv-ci/rava-action-runner:latest'
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: 'OERV-RVCI/RAVA-action'
+          ref: ${{ inputs.WORKFLOW_REF }}
+      
+      - id: parse-request
+        uses: ./parse-request
+   
+      - name: checkout kernel source
+        run: |
+          rm -rf kernel-src || true
+          mkdir -p kernel-src && (cd kernel-src && bash ../src/git-fetch-in-dir.sh "${{ steps.parse-request.outputs.FETCH_REF }}")
+        env:
+          REPO: ${{ steps.parse-request.outputs.REPO }}
+          GIT_FETCH_DEPTH: 1
+      
+      - uses: ./kernel-check/kunit-test
+        with:
+          kernel-src-dir: kernel-src
+
+      - uses: ./kernel-check/kernel-build
+        id: kernel-build
+        with:
+          kernel-src-dir: kernel-src
+          sshkey_content: ${{ secrets.KERNEL_DOWNLOAD_SERVER_SSHKEY }}
+      
+      - uses: ./kernel-check/lava-trigger
+        with:
+          lava_token: ${{ secrets.LAVA_TOKEN }}
+        
+  # check-patch:
+  #   runs-on:
+  #     group: '9950x'
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         repository: 'OERV-RVCI/RAVA-action'
+  #         ref: ${{ env.WORKFLOW_REF }}
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         path: 'kernel-src'
+  #     - uses: ./check-patch
+  #       env:
+  #         FETCH_REF: ${{ needs.parse-request.outputs.FETCH_REF }}
+  #         ISSUE_ID: ${{ needs.parse-request.outputs.ISSUE_ID }}
+  #         SRC_REF: ${{ needs.parse-request.outputs.SRC_REF }}
+        
