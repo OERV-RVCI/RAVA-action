@@ -1,0 +1,6 @@
+
+runs:
+  using: docker
+  image: 'rvck-client:dev'
+  entrypoint: '/github/workspace/rvck-kernel-build/build-kernel/run.sh'
+  

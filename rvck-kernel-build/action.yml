@@ -1,0 +1,11 @@
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        path: 'kernel-src'
+    - run: chmod +x rvck-kernel-build/build-kernel/run.sh
+      shell: bash
+    - uses: ./rvck-kernel-build/build-kernel
+    
+    

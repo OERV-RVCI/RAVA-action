@@ -1,0 +1,42 @@
+name: RVCK CI
+
+on:
+  workflow_call:
+    inputs:
+      WORKFLOW_REF:
+        required: false
+        type: string
+        default: 'main'
+
+env:
+  WORKFLOW_REF: ${{ vars.WORKFLOW_REF || inputs.WORKFLOW_REF }}
+
+jobs:
+  parse-request:
+    runs-on: ubuntu-latest
+    outputs:
+      FETCH_REF: ${{ steps.parse-request.outputs.FETCH_REF }}
+      SRC_REF: ${{ steps.parse-request.outputs.SRC_REF }}
+      ISSUE_ID: ${{ steps.parse-request.outputs.ISSUE_ID }}
+      NEED_RUN_JOB: ${{ steps.parse-request.outputs.NEED_RUN_JOB }}
+      testcase_repo: ${{ steps.parse-request.outputs.testcase_repo }}
+      lava_template: ${{ steps.parse-request.outputs.lava_template }}
+      testcase_url: ${{ steps.parse-request.outputs.testcase_url }}
+      REPO: ${{ steps.parse-request.outputs.REPO }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: 'OERV-RVCI/RAVA-action'
+          ref: ${{ env.WORKFLOW_REF }}
+      - id: parse-request
+        uses: ./parse-request
+
+  kernel-build:
+    runs-on: 'action-runner-9950x-196.2'
+    needs: parse-request
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: 'OERV-RVCI/RAVA-action'
+          ref: ${{ env.WORKFLOW_REF }}
+      - uses: ./rvck-kernel-build
