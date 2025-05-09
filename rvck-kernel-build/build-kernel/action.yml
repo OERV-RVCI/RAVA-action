@@ -1,0 +1,10 @@
+outputs:
+  kernel_download_url:
+    description: "kernel download url"
+    value: ${{ steps.build-kernel.outputs.kernel_download_url }}
+
+runs:
+  using: docker
+  image: 'work-img/Dockerfile'
+  entrypoint: 'rvck-kernel-build/build-kernel/run.sh'
+  

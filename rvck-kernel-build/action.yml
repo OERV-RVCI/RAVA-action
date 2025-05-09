@@ -1,0 +1,13 @@
+outputs:
+  kernel_download_url:
+    description: "kernel download url"
+    value: ${{ steps.build-kernel.outputs.kernel_download_url }}
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+
+    - uses: ./rvck-kernel-build/build-kernel
+    
+    
