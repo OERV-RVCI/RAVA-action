@@ -38,7 +38,7 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         context: .
-        file: run-in-docker/Dockerfile
+        file: .github/actions-runner-image/Dockerfile
         no-cache: true
         push: true
         tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest

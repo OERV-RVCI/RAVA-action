@@ -49,55 +49,54 @@ jobs:
 
        
   parse-request:
-    uses: OERV-RVCI/RAVA-action/.github/workflows/parse-request.yml@main
+    permissions:
+      issues: write
+      pull-requests: write
+    uses: OERV-RVCI/RVCK-pipeline/.github/workflows/parse-request.yml@actions
+    with:
+      WORKFLOW_REPO: OERV-RVCI/RVCK-pipeline
+      WORKFLOW_REF: actions
   
   kunit-test:
     needs: [parse-request]
-    uses: OERV-RVCI/RAVA-action/.github/workflows/kunit-test.yml@main
+    permissions:
+      issues: write
+      pull-requests: write
+    uses: OERV-RVCI/RVCK-pipeline/.github/workflows/kunit-test.yml@actions
     secrets: inherit
     with:
+      WORKFLOW_REPO: OERV-RVCI/RVCK-pipeline
+      WORKFLOW_REF: actions
       kernel_src_repo: ${{ needs.parse-request.outputs.REPO }}
       fetch_ref: ${{ needs.parse-request.outputs.FETCH_REF }}
       issue_id: ${{ needs.parse-request.outputs.ISSUE_ID }}
   
   kernel-build:
     needs: [parse-request]
-    outputs:
-      kernel_download_url: ${{ steps.kernel-build.outputs.kernel_download_url }}
-    runs-on: 'action-runner-9950x-196.2'
-    container:
-      image: 'hub.oepkgs.net/oerv-ci/rava-action-runner:latest'
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      REPO: ${{ needs.parse-request.outputs.REPO }}
-      FETCH_REF: ${{ needs.parse-request.outputs.FETCH_REF }}
-      ISSUE_ID: ${{ needs.parse-request.outputs.ISSUE_ID }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          repository: 'OERV-RVCI/RAVA-action'
-          ref: ${{ inputs.WORKFLOW_REF }}
-
-      - name: checkout kernel source
-        run: |
-          rm -rf kernel-src || true
-          mkdir -p kernel-src && (cd kernel-src && bash ../src/git-fetch-in-dir.sh "${{ needs.parse-request.outputs.FETCH_REF }}")
-        env:
-          REPO: ${{ needs.parse-request.outputs.REPO }}
-          GIT_FETCH_DEPTH: 1
-
-      - uses: ./kernel-check/kernel-build
-        id: kernel-build
-        with:
-          kernel-src-dir: kernel-src
-          sshkey_content: ${{ secrets.KERNEL_DOWNLOAD_SERVER_SSHKEY }}
-
+    uses: OERV-RVCI/RVCK-pipeline/.github/workflows/kernel-build.yml@actions
+    permissions:
+      issues: write
+      pull-requests: write
+    secrets:
+      sshkey_content: ${{ secrets.KERNEL_DOWNLOAD_SERVER_SSHKEY }}
+    with:
+      WORKFLOW_REPO: OERV-RVCI/RVCK-pipeline
+      WORKFLOW_REF: actions
+      kernel_src_repo: ${{ needs.parse-request.outputs.REPO }}
+      fetch_ref: ${{ needs.parse-request.outputs.FETCH_REF }}
+      issue_id: ${{ needs.parse-request.outputs.ISSUE_ID }}
       
   lava-trigger:
     needs: [parse-request, kernel-build]
-    uses: OERV-RVCI/RAVA-action/.github/workflows/lava-trigger.yml@main
-    secrets: inherit
+    uses: OERV-RVCI/RVCK-pipeline/.github/workflows/lava-trigger.yml@actions
+    permissions:
+      issues: write
+      pull-requests: write
+    secrets: 
+      lava_token: ${{ secrets.LAVA_TOKEN }}
     with:
+      WORKFLOW_REPO: OERV-RVCI/RVCK-pipeline
+      WORKFLOW_REF: actions
       REPO: ${{ needs.parse-request.outputs.REPO }}
       ISSUE_ID: ${{ needs.parse-request.outputs.ISSUE_ID }}
       kernel_download_url: ${{ needs.kernel-build.outputs.kernel_download_url }}
@@ -105,21 +104,18 @@ jobs:
       lava_template: ${{ needs.parse-request.outputs.lava_template }}
       testcase_url: ${{ needs.parse-request.outputs.testcase_url }}
 
-
-  # check-patch:
-  #   runs-on:
-  #     group: '9950x'
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         repository: 'OERV-RVCI/RAVA-action'
-  #         ref: ${{ env.WORKFLOW_REF }}
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         path: 'kernel-src'
-  #     - uses: ./check-patch
-  #       env:
-  #         FETCH_REF: ${{ needs.parse-request.outputs.FETCH_REF }}
-  #         ISSUE_ID: ${{ needs.parse-request.outputs.ISSUE_ID }}
-  #         SRC_REF: ${{ needs.parse-request.outputs.SRC_REF }}
-        
+  check-patch:
+    needs: [parse-request]
+    if: ${{ needs.parse-request.outputs.SRC_REF }}
+    permissions:
+      issues: write
+      pull-requests: write
+    uses: OERV-RVCI/RVCK-pipeline/.github/workflows/check-patch.yml@actions
+    secrets: inherit
+    with:
+      WORKFLOW_REPO: OERV-RVCI/RVCK-pipeline
+      WORKFLOW_REF: actions
+      kernel_src_repo: ${{ needs.parse-request.outputs.REPO }}
+      fetch_ref: ${{ needs.parse-request.outputs.FETCH_REF }}
+      src_ref: ${{ needs.parse-request.outputs.SRC_REF }}
+      issue_id: ${{ needs.parse-request.outputs.ISSUE_ID }}
