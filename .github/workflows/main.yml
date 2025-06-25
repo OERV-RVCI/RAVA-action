@@ -13,7 +13,6 @@ jobs:
     steps:
       - name: run ${{ matrix.wait }}
         id: result-wait
-        if: env.lava_result != finish
         run: |
           ip addr
           set -x
