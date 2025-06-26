@@ -14,18 +14,13 @@ jobs:
       - name: run ${{ matrix.wait }}
         id: result-wait
         run: |
-          ip addr
-          set -x
-          echo ${{ matrix.wait }}
-          echo ${{ env.lava_result }} || true
-          echo ${{ steps.result-wait.outputs.lava_result }} || true
-          set +x
           
-          for((i=1; i<=${{matrix.wait}}; i++)); do
-              echo $i/${{ matrix.wait }}
+          echo ${{ matrix.wait }}
+          max_time_seconds=$((60 * 60 * 24))
+          for((i=1; i<=max_time_seconds; i++)); do
+              echo "================${i}==================="
+              ip addr
+              echo "======================================="
               sleep 5
           done
-          if [ "${{ matrix.wait }}" = 5 ]; then
-              echo "lava_result=finish" >> $GITHUB_OUTPUT
-              echo "lava_result=finish" >> $GITHUB_ENV
-          fi
+          
