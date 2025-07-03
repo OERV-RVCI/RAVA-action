@@ -13,7 +13,7 @@ jobs:
     steps:
       - name: run ${{ matrix.wait }}
         id: result-wait
-        if: ${{ steps.result-wait.outputs.is_ok == 'ok' }}
+        if: ${{ steps.result-wait.outputs.is_ok != 'ok' }}
         run: |
           
           echo ${{ matrix.wait }}
