@@ -13,12 +13,15 @@ jobs:
     steps:
       - name: run ${{ matrix.wait }}
         id: result-wait
-        timeout-minutes: 1
-        if: ${{ (matrix.wait == 1 && success()) ||  (matrix.wait != 1 && !success()) }}
+        if: ${{ steps.result-wait.outputs.is_ok == 'ok' }}
         run: |
           
           echo ${{ matrix.wait }}
-          max_time_seconds=$((60 * 60 * 24))
+          if [ "${{ matrix.wait }}" = "2" ]; then
+            echo "is_ok=ok" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          max_time_seconds=$((2))
           for((i=1; i<=max_time_seconds; i++)); do
               echo "================${i}==================="
               ip addr
