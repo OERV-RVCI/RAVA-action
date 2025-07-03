@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: run ${{ matrix.wait }}
         id: result-wait
+        timeout-minutes: 1
+        if: ${{ (matrix.wait == 1 && success()) ||  (matrix.wait != 1 && !success()) }}
         run: |
           
           echo ${{ matrix.wait }}
