@@ -11,7 +11,7 @@ jobs:
       matrix:
         wait: [1,2,3,4,5,6,7,8,9,10]
     steps:
-      - name: check-result
+      - id: check-result
         uses: actions/cache@v4.2.3
         with:
           path: is_ok_flag.txt
@@ -22,7 +22,7 @@ jobs:
                 
       - name: run ${{ matrix.wait }}
         id: result-wait
-        if: ${{ !steps.check-result.outputs.cache-hit }}
+        if: ${{ steps.check-result.outputs.cache-hit == false }}
         run: |
           if [ "${{ matrix.wait }}" = "2" ]; then
             echo "is_ok=ok" >> $GITHUB_OUTPUT
