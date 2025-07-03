@@ -11,16 +11,20 @@ jobs:
       matrix:
         wait: [1,2,3,4,5,6,7,8,9,10]
     steps:
+      - name: check-result
+        uses: actions/cache@v4.2.3
+        with:
+          # An explicit key for restoring and saving the cache
+          key: is_ok
+          # Check if a cache entry exists for the given input(s) (key, restore-keys) without downloading the cache
+          lookup-only: true
+                
       - name: run ${{ matrix.wait }}
         id: result-wait
+        if: ${{ !steps.check-result.outputs.cache-hit }}
         run: |
-          
-          echo ${{ matrix.wait }}
-          if [ "$is_ok" = "ok" ]; then
-            exit 0
-          fi
           if [ "${{ matrix.wait }}" = "2" ]; then
-            echo "is_ok=ok" >> $GITHUB_ENV
+            echo "is_ok=ok" >> $GITHUB_OUTPUT
             exit 0
           fi
           max_time_seconds=$((2))
@@ -30,4 +34,10 @@ jobs:
               echo "======================================="
               sleep 5
           done
+          
+      - name: set-result
+        if: ${{ steps.result-wait.outputs.is_ok }}
+        uses: actions/cache@v4.2.3
+        with:
+          key: is_ok
           
