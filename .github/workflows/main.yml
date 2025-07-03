@@ -14,6 +14,7 @@ jobs:
       - name: check-result
         uses: actions/cache@v4.2.3
         with:
+          path: is_ok_flag.txt
           # An explicit key for restoring and saving the cache
           key: is_ok
           # Check if a cache entry exists for the given input(s) (key, restore-keys) without downloading the cache
@@ -25,6 +26,7 @@ jobs:
         run: |
           if [ "${{ matrix.wait }}" = "2" ]; then
             echo "is_ok=ok" >> $GITHUB_OUTPUT
+            touch is_ok_flag.txt
             exit 0
           fi
           max_time_seconds=$((2))
@@ -40,4 +42,5 @@ jobs:
         uses: actions/cache@v4.2.3
         with:
           key: is_ok
+          path: is_ok_flag.txt
           
