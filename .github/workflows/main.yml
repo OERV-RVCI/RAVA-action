@@ -12,13 +12,15 @@ jobs:
         wait: [1,2,3,4,5,6,7,8,9,10]
     steps:
       - name: run ${{ matrix.wait }}
-        id: result-wait
-        if: ${{ steps.result-wait.outputs.is_ok != 'ok' }}
+        id: result-wait-${{ matrix.wait }}
         run: |
           
           echo ${{ matrix.wait }}
+          if [ "$is_ok" = "ok" ]; then
+            exit 0
+          fi
           if [ "${{ matrix.wait }}" = "2" ]; then
-            echo "is_ok=ok" >> $GITHUB_OUTPUT
+            echo "is_ok=ok" >> $GITHUB_ENV
             exit 0
           fi
           max_time_seconds=$((2))
