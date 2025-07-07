@@ -2,7 +2,10 @@ name: test matrix
 
 on:
   workflow_dispatch:
-  
+env:  
+  lava_server: lava.oerv.ac.cn
+  lava_admin_token: ${{ secrets.LAVA_TOKEN }}
+
 jobs:
   lava-result:
     runs-on: 'ubuntu-latest'
@@ -10,37 +13,14 @@ jobs:
       max-parallel: 1
       matrix:
         wait: [1,2,3,4,5,6,7,8,9,10]
-    steps:
-      - id: check-result
-        uses: actions/cache@v4.2.3
-        with:
-          path: is_ok_flag.txt
-          # An explicit key for restoring and saving the cache
-          key: is_ok
-          # Check if a cache entry exists for the given input(s) (key, restore-keys) without downloading the cache
-          lookup-only: true
-                
+    steps:    
       - name: run ${{ matrix.wait }}
         id: result-wait
-        if: ${{ steps.check-result.outputs.cache-hit == false }}
         run: |
-          if [ "${{ matrix.wait }}" = "2" ]; then
-            echo "is_ok=ok" >> $GITHUB_OUTPUT
-            touch is_ok_flag.txt
-            exit 0
-          fi
-          max_time_seconds=$((2))
-          for((i=1; i<=max_time_seconds; i++)); do
+          for((i=1; ;i++)); do
               echo "================${i}==================="
-              ip addr
+              lavacli --uri https://${lava_admin_token}@${lava_server}/RPC2/ jobs list
               echo "======================================="
-              sleep 5
+              sleep 300
           done
-          
-      - name: set-result
-        if: ${{ steps.result-wait.outputs.is_ok }}
-        uses: actions/cache@v4.2.3
-        with:
-          key: is_ok
-          path: is_ok_flag.txt
           
