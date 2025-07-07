@@ -17,6 +17,8 @@ jobs:
       - name: run ${{ matrix.wait }}
         id: result-wait
         run: |
+          sudo apt update
+          sudo apt install lavacli
           for((i=1; ;i++)); do
               echo "================${i}==================="
               lavacli --uri https://${lava_admin_token}@${lava_server}/RPC2/ jobs list
