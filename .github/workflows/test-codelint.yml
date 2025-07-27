@@ -11,6 +11,6 @@ jobs:
   codelint:
     uses: OERV-RVCI/RVCK-RAVA/.github/workflows/codelint.yml@develop/codelint
     with:
-      repo: https://github.com/OERV-RVCI/lavaci-access-rava-action
+      repo: OERV-RVCI/lavaci-access-rava-action
       ref: main
       check_path: ${{ inputs.check_path }}
