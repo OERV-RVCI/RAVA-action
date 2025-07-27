@@ -1,0 +1,16 @@
+name: test-codelint
+
+on:
+  workflow_dispatch:
+    inputs:
+      check_path:
+        type: string
+        
+
+jobs:
+  codelint:
+    uses: OERV-RVCI/RVCK-RAVA/.github/workflows/codelint.yml@develop/codelint
+    with:
+      repo: https://github.com/OERV-RVCI/lavaci-access-rava-action
+      ref: main
+      check_path: ${{ inputs.check_path }}
