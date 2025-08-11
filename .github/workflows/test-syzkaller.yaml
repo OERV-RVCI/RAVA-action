@@ -1,0 +1,11 @@
+name: test-syzkaller
+on: 
+  workflow_dispatch:
+
+jobs:
+  syzkaller:
+    uses: OERV-RVCI/RVCK-RAVA/.github/workflows/syzkaller.yaml@develop/syzkaller
+    with:
+      repo: OERV-RVCI/rvck-olk
+      ref: OLK-6.6
+      
